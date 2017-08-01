@@ -1,95 +1,48 @@
+#include "SymRLWE/Cipher.hpp"
+#include "SymRLWE/PrivateKey.hpp"
+#include "SymRLWE/types.hpp"
 #include <HElib/FHE.h>
-#include <HElib/DoubleCRT.h>
 #include <HElib/FHEContext.h>
 
-#include <memory>
-typedef std::shared_ptr<DoubleCRT> Polynomial_ptr;
-
-Polynomial_ptr copy_poly_ptr(Polynomial_ptr a) {
-    return std::make_shared<DoubleCRT>(*a);
+void create_test_v(NTL::ZZX *test_v, const FHEcontext &context) {
+    if (!test_v)
+        return;
+    long m = context.zMStar.getM();
+    long phiM = phi_N(m);
+    if (phiM != (m >> 1)) 
+        std::cerr << "WARNING! m should be power of 2" << std::endl;
+    test_v->SetLength(phiM);
+    for (long i = 0; i < phiM; i++)
+        NTL::SetCoeff(*test_v, i, 1);
 }
-
-class SymmetricPrivateKey;
-class Cipher {
-public:
-    Cipher() {}
-   
-    Cipher(const Cipher &oth) {
-        a = copy_poly_ptr(oth.a);
-        b = copy_poly_ptr(oth.b);
-    }
-
-    Cipher& operator=(const Cipher &oth) const = delete;
-
-    ~Cipher() {} 
-    
-    friend class SymmetricPrivateKey;
-
-protected:
-    void set_cipher(Polynomial_ptr a, Polynomial_ptr b) {
-        this->a = a;
-        this->b = b;
-    }
-
-    Polynomial_ptr get_a() const {
-        return a;
-    }
-
-    Polynomial_ptr get_b() const {
-        return b;
-    }
-private:
-    Polynomial_ptr a, b;
-};
-
-class SymmetricPrivateKey {
-public:
-    SymmetricPrivateKey(const FHEcontext &context) : context(context) {
-        private_s = std::make_shared<DoubleCRT>(context);
-        private_s->sampleHWt(64);
-        ptxtSpace = context.alMod.getPPowR();
-    }
-    
-    ~SymmetricPrivateKey() {
-    }
-
-    void Encrypt(Cipher *cipher, const NTL::ZZX &message) const {
-        if (!cipher)
-            return;
-        auto a = std::make_shared<DoubleCRT>(context);
-        auto b = std::make_shared<DoubleCRT>(context);
-        RLWE(*a, *b, *private_s, NTL::to_long(ptxtSpace));
-        (*a) += message;
-        cipher->set_cipher(a, b); 
-    }
-
-    void Decrypt(NTL::ZZX *message, const Cipher &cipher) const {
-        if (!message)
-            return;
-        DoubleCRT b(*cipher.get_b()); 
-        b *= (*private_s);
-        b += (*cipher.get_a());
-
-        b.toPoly(*message);
-        PolyRed(*message, ptxtSpace, true/*reduce to [0,p-1]*/);
-    }
-private:
-    const FHEcontext &context;
-    NTL::ZZ ptxtSpace;
-    Polynomial_ptr private_s;
-};
-
 
 int main() {
     FHEcontext context(2048, 11, 1);
     buildModChain(context, 5);
-    SymmetricPrivateKey sk(context);
+    PrivateKey sk(context);
+    const long a = 4;
     Cipher cipher;
-    NTL::ZZX poly;
-    poly.SetLength(10);
-    for (long i = 0; i < 10; i++)
-        poly[i] = i + 1;
-    sk.Encrypt(&cipher, poly);
+    sk.EncryptOnDegree(&cipher, a);
+
+    const long b = 5;
+    NTL::ZZX Xb;
+    encodeOnDegree(&Xb, -b, context);
+    NTL::ZZX testv;
+    create_test_v(&testv, context);    
+
+    const long ptxtSpace = context.alMod.getPPowR();
+    const long mu0 = 0, mu1 = 1;
+    long one_half = NTL::InvMod(2L, ptxtSpace); 
+    one_half *= (mu1 + mu0); // one_half = (mu0 + mu1) / 2
+    long mu_dash = mu0 - one_half;
+    testv *= mu_dash;
+
+    //!< Xb = Xb * testv \mod PhiM(X)
+    NTL::MulMod(Xb, Xb, testv, context.zMStar.getPhimX());
+    //!< cipher = X^{a-b} * testv + one_half
+    cipher *= Xb; 
+    cipher += one_half;
+
     NTL::ZZX dec;
     sk.Decrypt(&dec, cipher);
     std::cout << dec << "\n";
