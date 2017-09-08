@@ -11,10 +11,14 @@ class PrivateKey {
 public:
     PrivateKey(const FHEcontext &context);
     
+    PrivateKey(const PrivateKey &oth);
+
+    PrivateKey& operator=(const PrivateKey &oth) = delete;
+
     ~PrivateKey();
 
     const FHEcontext& getContext() const;
-
+    /// Lift the s(X) to s^k(X).
     void power(long k);
 
     void Encrypt(Cipher *cipher, const NTL::ZZX &message) const;

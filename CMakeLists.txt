@@ -10,6 +10,16 @@ include_directories(${NTL_HEADER} ${HELIB_HEADER} include)
 link_directories(${NTL_LIB} ${HELIB_LIB})
 
 add_subdirectory(src)
+
+if (ENABLE_TESTS)
+    enable_testing()
+    find_package(GTest REQUIRED)
+    add_subdirectory(test)
+endif (ENABLE_TESTS)
+
 add_executable(main main.cpp)
 target_link_libraries(main symrlwe helib ntl pthread gmp)
+
+add_executable(main-2 main-2.cpp)
+target_link_libraries(main-2 symrlwe helib ntl pthread gmp)
 

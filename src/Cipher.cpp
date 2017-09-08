@@ -2,7 +2,8 @@
 #include <HElib/DoubleCRT.h>
 
 #include "SymRLWE/Cipher.hpp"
-Cipher::Cipher() {}
+Cipher::Cipher() {
+}
 
 Cipher::Cipher(const Cipher &oth) {
     a = copy_ptr(oth.a);
@@ -17,6 +18,12 @@ Cipher& Cipher::operator*=(const NTL::ZZX &v) {
 
 Cipher& Cipher::operator+=(const long v) {
     (*b) += v;
+    return *this;
+}
+
+Cipher& Cipher::operator+=(const Cipher &oth) {
+    (*a) += (*oth.a);
+    (*b) += (*oth.b);
     return *this;
 }
 

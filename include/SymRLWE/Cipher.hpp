@@ -15,10 +15,12 @@ public:
 
     Cipher& operator+=(const long v);
 
+    Cipher& operator+=(const Cipher &oth);
+
     Cipher& power(const long k);
 
     ~Cipher();
-    
+    /// PrivateKey instance get access set_cipher method for encryption.
     friend class PrivateKey;
 
 protected:
