@@ -8,7 +8,7 @@
 #include "SymRLWE/GreaterThan.hpp"
 
 namespace {
-    const long M = 2048;
+    const long M = 32;
     FHEcontext context(M, 1031, 1);
     PrivateKey *key;
 
@@ -52,8 +52,38 @@ namespace {
         }
     }    
 
-    TEST_F(GreaterThanTest, RandomGeneratedValues) {
+    TEST_F(GreaterThanTest, Arguments) {
+        GreaterThanArgs gt_args;
+        std::vector<long> primes = {23, 1031};
+        std::vector<long> MUs = {12, 516};
+        for (size_t i = 0; i < primes.size(); i++) {
+            FHEcontext context(M, primes[i], 1);
+            create_greater_than_args(&gt_args, 1L, 0L, context);
+            ASSERT_EQ(gt_args.one_half, MUs[i]);
+        }
+    }
 
+    TEST_F(GreaterThanTest, RandomGeneratedValuesOnPlain) {
+        const long numTrials = 100;
+        std::vector<long> As(numTrials), Bs(numTrials);
+        const long phiM = phi_N(M);
+        for (long i = 0; i < numTrials; i++) {
+            As[i] = NTL::RandomBnd(phiM);
+            Bs[i] = NTL::RandomBnd(phiM);
+        }
+
+        GreaterThanArgs gt_args;
+        create_greater_than_args(&gt_args, 1L, 0L, context);
+
+        for (size_t i = 0; i < As.size(); i++) {
+            NTL::ZZX poly_a;
+            encodeOnDegree(&poly_a, As[i], context);
+            NTL::ZZX result = greater_than(poly_a, Bs[i], gt_args, context);
+            ASSERT_EQ(result[0] == gt_args.gt(), (As[i] > Bs[i]));
+        }
+    }
+
+    TEST_F(GreaterThanTest, RandomGeneratedValues) {
         const long numTrials = 100;
         std::vector<long> As(numTrials), Bs(numTrials);
         const long phiM = phi_N(M);

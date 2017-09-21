@@ -19,7 +19,3 @@ endif (ENABLE_TESTS)
 
 add_executable(main main.cpp)
 target_link_libraries(main symrlwe helib ntl pthread gmp)
-
-add_executable(main-2 main-2.cpp)
-target_link_libraries(main-2 symrlwe helib ntl pthread gmp)
-

@@ -50,4 +50,22 @@ Cipher greater_than(const Cipher &a, long b,
     return result;
 }
 
+NTL::ZZX greater_than(const NTL::ZZX &poly_a, long b, 
+                      const GreaterThanArgs& args,
+                      const FHEcontext &context) {
+    NTL::ZZX poly_b;
+    encodeOnDegree(&poly_b, -b, context); 
+    //!< when b > 0, X^{-b} will bring negative coefficients, so just multiply it with -1
+    if (b > 0)
+        poly_b *= -1L;
+    poly_b *= (args.ngt() - args.one_half);
+    //!< poly_b = (mu1 - mu0)/2 * X^{-b} * test_v \mod X^N + 1
+    NTL::MulMod(poly_b, poly_b, args.test_v, context.zMStar.getPhimX());
+
+    auto result(poly_a);
+    NTL::MulMod(result, result, poly_b, context.zMStar.getPhimX());
+    //!< result = (mu1 + mu0)/2 + (mu1 - mu0)/2 * X^{a-b} * test_v
+    NTL::SetCoeff(result, 0, (result[0] + args.one_half) % context.alMod.getPPowR());
+    return result;
+}
 

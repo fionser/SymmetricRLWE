@@ -25,4 +25,8 @@ Cipher greater_than(const Cipher &a, long b,
                     const GreaterThanArgs& args,
                     const FHEcontext &context);
 
+/// Use for debugging, same logic with the method above.
+NTL::ZZX greater_than(const NTL::ZZX &poly_a, long b, 
+                      const GreaterThanArgs& args,
+                      const FHEcontext &context);
 #endif // SYM_RLWE_GREATER_THAN_HPP
