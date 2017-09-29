@@ -64,6 +64,17 @@ namespace {
         }
     }    
 
+    TEST_F(GreaterThanBenchmark, Compare100) {
+        GreaterThanArgs gt_args;
+        create_greater_than_args(&gt_args, 1L, 0L, context);
+        const long phiM = phi_N(M);
+        for (int i = 0; i < 100; i++) {
+            long value = NTL::RandomBnd(phiM);
+            greater_than(ciphers[CipherNum::_100].at(i), value, 
+                         gt_args, context);
+        }
+    } 
+
     TEST_F(GreaterThanBenchmark, Encryption200) {
         const long phiM = phi_N(M);
         ciphers[CipherNum::_200].resize(200);
@@ -73,12 +84,34 @@ namespace {
         }
     }
 
+    TEST_F(GreaterThanBenchmark, Compare200) {
+        GreaterThanArgs gt_args;
+        create_greater_than_args(&gt_args, 1L, 0L, context);
+        const long phiM = phi_N(M);
+        for (int i = 0; i < 200; i++) {
+            long value = NTL::RandomBnd(phiM);
+            greater_than(ciphers[CipherNum::_200].at(i), value, 
+                         gt_args, context);
+        }
+    } 
+
     TEST_F(GreaterThanBenchmark, Encryption400) {
         const long phiM = phi_N(M);
         ciphers[CipherNum::_400].resize(400);
         for (int i = 0; i < 400; i++) {
             long value = NTL::RandomBnd(phiM);
             key->EncryptOnDegree(&(ciphers[CipherNum::_400].at(i)), value);
+        }
+    }
+
+    TEST_F(GreaterThanBenchmark, Compare400) {
+        GreaterThanArgs gt_args;
+        create_greater_than_args(&gt_args, 1L, 0L, context);
+        const long phiM = phi_N(M);
+        for (int i = 0; i < 400; i++) {
+            long value = NTL::RandomBnd(phiM);
+            greater_than(ciphers[CipherNum::_400].at(i), value, 
+                         gt_args, context);
         }
     }
 
@@ -91,6 +124,17 @@ namespace {
         }
     }
 
+    TEST_F(GreaterThanBenchmark, Compare800) {
+        GreaterThanArgs gt_args;
+        create_greater_than_args(&gt_args, 1L, 0L, context);
+        const long phiM = phi_N(M);
+        for (int i = 0; i < 800; i++) {
+            long value = NTL::RandomBnd(phiM);
+            greater_than(ciphers[CipherNum::_800].at(i), value, 
+                         gt_args, context);
+        }
+    }
+
     TEST_F(GreaterThanBenchmark, Encryption1600) {
         const long phiM = phi_N(M);
         ciphers[CipherNum::_1600].resize(1600);
@@ -100,4 +144,14 @@ namespace {
         }
     }
 
+    TEST_F(GreaterThanBenchmark, Compare1600) {
+        GreaterThanArgs gt_args;
+        create_greater_than_args(&gt_args, 1L, 0L, context);
+        const long phiM = phi_N(M);
+        for (int i = 0; i < 1600; i++) {
+            long value = NTL::RandomBnd(phiM);
+            greater_than(ciphers[CipherNum::_1600].at(i), value, 
+                         gt_args, context);
+        }
+    }
 }
