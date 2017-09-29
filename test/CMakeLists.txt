@@ -10,7 +10,9 @@ set(RUNTIME_LIBS
     gmp)
 
 set(CPP_ITESTS
-    greater_than_test)
+    greater_than_test
+    greater_than_benchmark
+    )
 
 #The integration tests must be single source code, and are compiled as a standalone application
 message(STATUS ${GTEST_BOTH_LIBRARIES})
