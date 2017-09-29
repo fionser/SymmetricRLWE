@@ -1,6 +1,7 @@
 #include "SymRLWE/Cipher.hpp"
 #include "SymRLWE/PrivateKey.hpp"
 #include "SymRLWE/types.hpp"
+#include "SymRLWE/Timer.hpp"
 #include <HElib/FHE.h>
 #include <HElib/FHEContext.h>
 
@@ -73,16 +74,19 @@ Cipher decision_tree(const std::vector<Cipher> &features,
     //!< if greater return 1, else return 0
     create_greater_than_args(&gt_args, 1L, 0L, context);
 
-    Cipher result = greater_than(features[0], tree[0], gt_args, testv, context);
-    for (size_t i = 1; i < features.size(); i++) {
-        Cipher tmp = greater_than(features[i], tree[i], gt_args, testv, context);
-        result += tmp;
+    std::vector<Cipher> each_layers(features.size());
+#pragma omp parallel for
+    for (size_t i = 0; i < features.size(); i++) {
+        each_layers[i] = greater_than(features[i], tree[i], gt_args, testv, context);
+        // result += tmp;
     }
-    return result;
+    for (size_t i = 1; i < features.size(); i++)
+        each_layers[0] += each_layers[i];
+    return each_layers[0];
 }
 
 void test_decision_tree(const PrivateKey &key, const FHEcontext &context) {
-    long N = 10;
+    long N = 17;
     std::vector<long> features(N);
     for (long i = 0; i < N; i++)
         features[i] = i + 1;
@@ -92,11 +96,12 @@ void test_decision_tree(const PrivateKey &key, const FHEcontext &context) {
     std::vector<long> tree(N);
     for (long i = 0; i < N; i++)
         tree[i] = i;
-
+    auto start_ = Clock::now();
     NTL::ZZX dec;
     Cipher result = decision_tree(enc_features, tree, context);
     key.Decrypt(&dec, result);
-    std::cout << dec[0] << "\n";
+    auto end_ = Clock::now();
+    std::cout << dec[0] << " " << time_as_millsecond(end_ - start_) << "ms" << std::endl;
 }
 
 void any_power(Cipher *ctx, long k, const FHEcontext &context) {
@@ -137,7 +142,7 @@ void test_power(const PrivateKey &key, const FHEcontext &context) {
 }
 
 int main() {
-    FHEcontext context(32, 1031, 1);
+    FHEcontext context(8192, 1031, 1);
     buildModChain(context, 4);
     std::cout << context.securityLevel() << "\n";
     PrivateKey sk(context);

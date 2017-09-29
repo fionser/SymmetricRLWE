@@ -9,7 +9,9 @@ public:
    
     Cipher(const Cipher &oth);
 
-    Cipher& operator=(const Cipher &oth) const = delete;
+    Cipher(Cipher &&oth);
+
+    Cipher& operator=(Cipher &&oth);
 
     Cipher& operator*=(const NTL::ZZX &v);
 

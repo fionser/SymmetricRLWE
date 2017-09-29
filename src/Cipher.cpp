@@ -10,6 +10,20 @@ Cipher::Cipher(const Cipher &oth) {
     b = copy_ptr(oth.b);
 }
 
+Cipher::Cipher(Cipher &&oth) {
+    a = std::move(oth.a);
+    b = std::move(oth.b);
+    oth.a = nullptr;
+    oth.b = nullptr;
+}
+
+Cipher& Cipher::operator=(Cipher &&oth) {
+    a = std::move(oth.a);
+    b = std::move(oth.b);
+    oth.a = nullptr;
+    oth.b = nullptr;
+}
+
 Cipher& Cipher::operator*=(const NTL::ZZX &v) {
     (*a) *= v;
     (*b) *= v;
