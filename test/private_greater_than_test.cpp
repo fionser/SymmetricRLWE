@@ -70,7 +70,7 @@ namespace {
 
     TEST_F(PrivateGreaterThanTest, RandomGeneratedValues) {
         GreaterThanArgs gt_args;
-        gt_args = create_greater_than_args(1L, 0L, context);
+        gt_args = create_greater_than_args(0L, 1L, context);
 
         const long numTrials = 100;
         const long phiM = phi_N(M);

@@ -22,7 +22,9 @@ if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
+
 add_executable(main main.cpp)
 target_link_libraries(main symrlwe helib ntl pthread gmp)
-add_executable(main-2 main-2.cpp)
-target_link_libraries(main-2 symrlwe helib ntl pthread gmp)
+
+add_executable(example example.cpp)
+target_link_libraries(example symrlwe helib ntl pthread gmp)
