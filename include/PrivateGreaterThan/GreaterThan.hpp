@@ -19,10 +19,14 @@ struct GreaterThanArgs {
 
 class FHEcontext; // From HElib
 class FHESecKey; // From HElib
+class FHEPubKey; // From HElib
 class Ctxt; // From HElib
 /// Create a GreaterThanArgs for the private greater than.
 /// Return (a cipher of) mu0 if the A > B, otherwise return mu1.
 GreaterThanArgs create_greater_than_args(long mu0, long mu1, FHEcontext const& context);
+/// Encrypt the value into the degree of the polynomial.
+Ctxt encrypt_in_degree(long value, FHEPubKey const& pk);
+/// Add the necessary key switching matrix into the key.
 /// This method should be called before calling the private greater than.
 void setup_auxiliary_for_greater_than(FHESecKey *sk);
 /// Privately comparing two encrypted values (in a proper form).

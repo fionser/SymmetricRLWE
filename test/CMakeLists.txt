@@ -12,7 +12,7 @@ set(RUNTIME_LIBS
 set(CPP_ITESTS
     greater_than_test
     greater_than_benchmark
-    cipher_test
+    private_greater_than_test
     )
 
 #The integration tests must be single source code, and are compiled as a standalone application
