@@ -24,7 +24,7 @@ void xor_cipher(Ctxt *cipher) {
 
 std::vector<Ctxt> private_rank(std::vector<Ctxt> const& ciphers,
                                FHEPubKey const& pk) {
-    auto context = pk.getContext();
+    FHEcontext const& context = pk.getContext();
     // return 0 if greater, else reutrn 1.
     GreaterThanArgs gt_args = create_greater_than_args(0L, 1L, context);
     size_t num_ctxts = ciphers.size();
