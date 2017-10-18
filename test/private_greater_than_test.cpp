@@ -6,9 +6,30 @@
 
 #include "PrivateGreaterThan/GreaterThan.hpp"
 #include "SymRLWE/PrivateKey.hpp"
+namespace testing
+{
+ namespace internal
+ {
+   enum GTestColor {
+         COLOR_DEFAULT,
+         COLOR_RED,
+         COLOR_GREEN,
+         COLOR_YELLOW
+     };
+ 
+   extern void ColoredPrintf(GTestColor color, const char* fmt, ...);
+  }
+}
+
+#define PRINTF(...)  \
+    do { \
+        testing::internal::ColoredPrintf(testing::internal::COLOR_GREEN, "[          ] "); \
+        testing::internal::ColoredPrintf(testing::internal::COLOR_YELLOW, __VA_ARGS__); } \
+    while(0)
 
 namespace {
     const long M = 1024;
+    const long TRIALS = 1000;
     FHEcontext context(M, 1031, 1);
     FHESecKey *secret_key;
     FHEPubKey *public_key;
@@ -68,13 +89,28 @@ namespace {
         }
     }
 
+    TEST_F(PrivateGreaterThanTest, NegateDegree) {
+        const long phiM = phi_N(M);
+        long p = public_key->getPtxtSpace();
+        for (long i = 0; i < TRIALS; i++) {
+            long v = NTL::RandomBnd(phiM);
+            Ctxt ctxt = encrypt_in_degree(v, *public_key);
+            smart_negate_degree(&ctxt, context);
+            NTL::ZZX dec;
+            secret_key->Decrypt(dec, ctxt);
+            if (v == 0)
+                ASSERT_EQ(1L, NTL::coeff(dec, 0));
+            else
+                ASSERT_EQ(p - 1L, NTL::coeff(dec, phiM - v));
+        }
+    }
+
     TEST_F(PrivateGreaterThanTest, RandomGeneratedValues) {
         GreaterThanArgs gt_args;
-        gt_args = create_greater_than_args(0L, 1L, context);
+        gt_args = create_greater_than_args(1L, 0L, context);
 
-        const long numTrials = 100;
         const long phiM = phi_N(M);
-        for (long i = 0; i < numTrials; i++) {
+        for (long i = 0; i < TRIALS; i++) {
             const long A = NTL::RandomBnd(phiM);
             const long B = NTL::RandomBnd(phiM);
 
@@ -87,6 +123,7 @@ namespace {
             public_key->Encrypt(enc_B, encoded_B);
 
             Ctxt result = greater_than(enc_A, enc_B, gt_args, context);
+            ASSERT_TRUE(result.isCorrect());
             NTL::ZZX dec;
             secret_key->Decrypt(dec, result);
             ASSERT_EQ(dec[0] == gt_args.gt(), A > B);
@@ -121,6 +158,30 @@ namespace {
             NTL::ZZX dec;
             secret_key->Decrypt(dec, result);
             ASSERT_EQ(dec[0] == gt_args.gt(), minimum > plains.at(i));
+        }
+    }
+
+    TEST_F(PrivateGreaterThanTest, EqualityTest) {
+        const long maximum = phi_N(M) - 1;
+        for (size_t i = 0; i < TRIALS; i++) {
+            long v = NTL::RandomBnd(maximum);
+            long u = NTL::RandomBnd(maximum);
+            if (i & 1)
+                u = v;
+
+            Ctxt enc_v = encrypt_in_degree(v, *public_key);
+            Ctxt enc_u = encrypt_in_degree(u, *public_key);
+
+            Ctxt result1 = equality_test(enc_v, enc_u, context, false);
+            Ctxt result2 = equality_test(enc_u, enc_v, context, false);
+
+            NTL::ZZX dec1, dec2;
+            secret_key->Decrypt(dec1, result1);
+            secret_key->Decrypt(dec2, result2);
+            long coeff1 = NTL::to_long(NTL::coeff(dec1, 0));
+            long coeff2 = NTL::to_long(NTL::coeff(dec2, 0));
+            ASSERT_EQ(coeff1, coeff2);
+            ASSERT_EQ(coeff1, v == u ? 0L : 1L);
         }
     }
 }

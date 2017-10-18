@@ -8,6 +8,7 @@ struct GreaterThanArgs {
     long mu0;
     long mu1;
     long one_half; // (mu0 + mu1) / 2
+    bool randomized; // Add randomized poly. False for debug.
     NTL::ZZX test_v; // a polynomial in the form of 1 + X + X^2 + ...
     long gt() const {
         return mu0;
@@ -36,4 +37,9 @@ Ctxt greater_than(Ctxt const&a, Ctxt const &b, GreaterThanArgs const& args, FHEc
 /// Return a cipher that encrypts 0 if the value of ctx_a is greater than the value of ctx_b.
 /// Otherwise, return a cipher that encrypts 1.
 Ctxt greater_than(Ctxt const& ctx_a, Ctxt const& ctx_b, FHEcontext const& context);
+/// Privately comparing two encrypted values.
+/// Return a cipher of 0 if the two values are equal, otherwise return a cipher of 1.
+Ctxt equality_test(Ctxt const& ctx_a, Ctxt const& ctx_b, FHEcontext const& context, bool randomized = true);
+/// E(X^a) --> E(X^{-a})
+void smart_negate_degree(Ctxt *ctx, FHEcontext const& context);
 #endif // PRIVATE_GREATER_THAN_GREATER_THAN_HPP

@@ -4,8 +4,8 @@ include_directories(${GTEST_INCLUDE_DIRS})
 
 set(RUNTIME_LIBS
     symrlwe
-    helib
     ntl
+    helib
     pthread
     gmp)
 
