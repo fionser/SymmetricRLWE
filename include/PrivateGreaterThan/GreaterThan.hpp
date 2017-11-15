@@ -1,7 +1,7 @@
 #ifndef PRIVATE_GREATER_THAN_GREATER_THAN_HPP
 #define PRIVATE_GREATER_THAN_GREATER_THAN_HPP
 #include <NTL/ZZX.h>
-
+#include <vector>
 /// Arguments for private greater than.
 /// Return mu0 if greater, otherwise return mu1
 struct GreaterThanArgs {
@@ -37,6 +37,9 @@ Ctxt greater_than(Ctxt const&a, Ctxt const &b, GreaterThanArgs const& args, FHEc
 /// Return a cipher that encrypts 0 if the value of ctx_a is greater than the value of ctx_b.
 /// Otherwise, return a cipher that encrypts 1.
 Ctxt greater_than(Ctxt const& ctx_a, Ctxt const& ctx_b, FHEcontext const& context);
+/// Privately accounting how many values in ctx_b_vec is less than the value encrypted in ctxt_a.
+/// That is to return a ciphertext that encrypts this cardinality |{i| b_i < a}| in its 0-th coefficient.
+Ctxt count_less_than(Ctxt const& ctxt_a, std::vector<Ctxt> const& ctx_b_vec, FHEcontext const& context);
 /// Privately comparing two encrypted values.
 /// Return a cipher of 0 if the two values are equal, otherwise return a cipher of 1.
 Ctxt equality_test(Ctxt const& ctx_a, Ctxt const& ctx_b, FHEcontext const& context, bool randomized = true);

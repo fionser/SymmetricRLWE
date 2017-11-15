@@ -31,6 +31,11 @@ static NTL::ZZX generate_random(FHEcontext const& context) {
     return NTL::conv<NTL::ZZX>(poly);
 }
 
+static void check_auxiliary(FHEPubKey const& pk) {
+    long M = pk.getContext().zMStar.getM();
+    assert(pk.haveKeySWmatrix(1, M - 1, 0, 0) && "Call setup_auxiliary_for_greater_than.");
+}
+
 void setup_auxiliary_for_greater_than(FHESecKey *sk) {
     if (!sk)
         return;
@@ -47,6 +52,7 @@ void setup_auxiliary_for_greater_than(FHESecKey *sk) {
 Ctxt greater_than(Ctxt const& ctx_a, Ctxt const& ctx_b,
                   GreaterThanArgs const& args,
                   FHEcontext const& context) {
+    check_auxiliary(ctx_a.getPubKey()); //sanity check
     Ctxt b_copy(ctx_b);
     smart_negate_degree(&b_copy, context); // X^{-b}
     b_copy.multiplyBy(ctx_a); // X^a * X^{-b}
@@ -67,6 +73,7 @@ Ctxt greater_than(Ctxt const& ctx_a, Ctxt const& ctx_b, FHEcontext const& contex
 }
 
 Ctxt equality_test(Ctxt const& ctx_a, Ctxt const& ctx_b, FHEcontext const& context, bool rnd) {
+    check_auxiliary(ctx_a.getPubKey()); //sanity check
     NTL::ZZX test_v = create_test_v(context);
     NTL::SetCoeff(test_v, 0, 0L);
 
@@ -120,3 +127,20 @@ void smart_negate_degree(Ctxt *ctx, FHEcontext const& context) {
     ctx->smartAutomorph(M - 1);
 }
 
+Ctxt count_less_than(Ctxt const& ctx_a, 
+                     std::vector<Ctxt> const& ctx_b_vec, 
+                     FHEcontext const& context) {
+    Ctxt sum_b(ctx_a.getPubKey());
+    for (auto const& b : ctx_b_vec)
+        sum_b += b;
+    /// [X^b] --> [X^-b]
+    smart_negate_degree(&sum_b, context);
+    /// return 1 for greater, o.w. return 0
+    GreaterThanArgs gt_args = create_greater_than_args(1, 0, context);
+    sum_b.multiplyBy(ctx_a);
+    NTL::ZZX T = (gt_args.mu1 - gt_args.one_half) * gt_args.test_v;
+    sum_b.multByConstant(T);
+    long n = ctx_b_vec.size() * gt_args.one_half;
+    sum_b.addConstant(NTL::to_ZZ(n));
+    return sum_b;
+}

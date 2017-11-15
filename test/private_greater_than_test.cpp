@@ -184,4 +184,26 @@ namespace {
             ASSERT_EQ(coeff1, v == u ? 0L : 1L);
         }
     }
+
+    TEST_F(PrivateGreaterThanTest, CountLessThan) {
+        const long maximum = phi_N(M) - 1;
+        long a = NTL::RandomBnd(maximum);
+        Ctxt ctx_a = encrypt_in_degree(a, *public_key);
+
+        std::vector<long> b_vec(TRIALS);
+        std::vector<Ctxt> ctx_b_vec;
+        ctx_b_vec.reserve(TRIALS);
+        long ground_true = 0;
+        for (size_t i = 0; i < TRIALS; i++) {
+            b_vec[i] = NTL::RandomBnd(maximum);
+            ctx_b_vec.emplace_back(encrypt_in_degree(b_vec[i], *public_key));
+            ground_true += a > b_vec[i] ? 1 : 0;
+        }
+
+        Ctxt res = count_less_than(ctx_a, ctx_b_vec, context);
+        NTL::ZZX dec;
+        secret_key->Decrypt(dec, res);
+        long coeff = NTL::to_long(NTL::coeff(dec, 0));
+        EXPECT_EQ(ground_true, coeff);
+    }
 }
