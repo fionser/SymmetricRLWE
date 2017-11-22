@@ -13,6 +13,7 @@ set(CPP_ITESTS
     greater_than_test
     greater_than_benchmark
     private_greater_than_test
+    decision_tree_test
     )
 
 #The integration tests must be single source code, and are compiled as a standalone application

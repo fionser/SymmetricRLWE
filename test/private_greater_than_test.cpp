@@ -28,8 +28,8 @@ namespace testing
     while(0)
 
 namespace {
-    const long M = 1024;
-    const long TRIALS = 1000;
+    const long M = 1024 << 3;
+    const long TRIALS = 100;
     FHEcontext context(M, 1031, 1);
     FHESecKey *secret_key;
     FHEPubKey *public_key;
@@ -37,7 +37,10 @@ namespace {
     class PrivateGreaterThanTest : public ::testing::Test {
     protected:
         static void SetUpTestCase() {
+            context.bitsPerLevel -= 5;
             buildModChain(context, 5);
+            PRINTF("Security Level %f\n", context.securityLevel());
+            PRINTF("m = %ld\n", context.zMStar.getPhiM());
             secret_key = new FHESecKey(context);
             secret_key->GenSecKey(64);
             setup_auxiliary_for_greater_than(secret_key);
@@ -130,6 +133,28 @@ namespace {
         }
     }
 
+    TEST_F(PrivateGreaterThanTest, RandomGeneratedValues2) {
+        GreaterThanArgs gt_args;
+        gt_args = create_greater_than_args(1L, 0L, context);
+
+        const long phiM = phi_N(M);
+        for (long i = 0; i < TRIALS; i++) {
+            const long A = NTL::RandomBnd(phiM);
+            const long B = NTL::RandomBnd(phiM);
+
+            NTL::ZZX encoded_A;
+            encodeOnDegree(&encoded_A, A, context);
+            Ctxt enc_A(*public_key);
+            public_key->Encrypt(enc_A, encoded_A);
+
+            Ctxt result = greater_than(enc_A, B, gt_args, context);
+            ASSERT_TRUE(result.isCorrect());
+            NTL::ZZX dec;
+            secret_key->Decrypt(dec, result);
+            ASSERT_EQ(dec[0] == gt_args.gt(), A > B);
+        }
+    }
+
     TEST_F(PrivateGreaterThanTest, BoundaryCondition) {
         GreaterThanArgs gt_args;
         gt_args = create_greater_than_args(1L, 0L, context);
@@ -161,6 +186,37 @@ namespace {
         }
     }
 
+    TEST_F(PrivateGreaterThanTest, BoundaryCondition2) {
+        GreaterThanArgs gt_args;
+        gt_args = create_greater_than_args(1L, 0L, context);
+        long minimum = 0;
+        long maximum = phi_N(M) - 1;
+        long other;
+        do {
+            other = NTL::RandomBnd(maximum);
+        } while (other == minimum or other == maximum);
+        Ctxt enc_minimum = encrypt_in_degree(minimum, *public_key);
+        Ctxt enc_maximum = encrypt_in_degree(maximum, *public_key);
+        Ctxt enc_other = encrypt_in_degree(other, *public_key);
+
+        std::vector<long> plains = {maximum, minimum, other};
+        std::vector<Ctxt> ciphers = {enc_maximum, enc_minimum, enc_other};
+
+        for (size_t i = 0; i < 3; i++) {
+            Ctxt result = greater_than(enc_maximum, plains.at(i), gt_args, context);
+            NTL::ZZX dec;
+            secret_key->Decrypt(dec, result);
+            EXPECT_EQ(dec[0] == gt_args.gt(), maximum > plains.at(i));
+        }
+
+        for (size_t i = 0; i < 3; i++) {
+            Ctxt result = greater_than(enc_minimum, plains.at(i), gt_args, context);
+            NTL::ZZX dec;
+            secret_key->Decrypt(dec, result);
+            EXPECT_EQ(dec[0] == gt_args.gt(), minimum > plains.at(i));
+        }
+    }
+
     TEST_F(PrivateGreaterThanTest, EqualityTest) {
         const long maximum = phi_N(M) - 1;
         for (size_t i = 0; i < TRIALS; i++) {
@@ -189,12 +245,12 @@ namespace {
         const long maximum = phi_N(M) - 1;
         long a = NTL::RandomBnd(maximum);
         Ctxt ctx_a = encrypt_in_degree(a, *public_key);
-
-        std::vector<long> b_vec(TRIALS);
+        
+        std::vector<long> b_vec(TRIALS * TRIALS);
         std::vector<Ctxt> ctx_b_vec;
-        ctx_b_vec.reserve(TRIALS);
+        ctx_b_vec.reserve(b_vec.size());
         long ground_true = 0;
-        for (size_t i = 0; i < TRIALS; i++) {
+        for (size_t i = 0; i < b_vec.size(); i++) {
             b_vec[i] = NTL::RandomBnd(maximum);
             ctx_b_vec.emplace_back(encrypt_in_degree(b_vec[i], *public_key));
             ground_true += a > b_vec[i] ? 1 : 0;
@@ -204,6 +260,7 @@ namespace {
         NTL::ZZX dec;
         secret_key->Decrypt(dec, res);
         long coeff = NTL::to_long(NTL::coeff(dec, 0));
+        ground_true %= context.alMod.getPPowR();
         EXPECT_EQ(ground_true, coeff);
     }
 }

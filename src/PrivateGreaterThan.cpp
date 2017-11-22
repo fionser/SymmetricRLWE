@@ -58,18 +58,64 @@ Ctxt greater_than(Ctxt const& ctx_a, Ctxt const& ctx_b,
     b_copy.multiplyBy(ctx_a); // X^a * X^{-b}
 
     b_copy.multByConstant((args.mu1 - args.one_half) * args.test_v);
-    b_copy.addConstant(NTL::to_ZZ(args.one_half));
+    NTL::ZZX r;
     if (args.randomized) {
-        NTL::ZZX r = generate_random(context);
-        NTL::SetCoeff(r, 0, 0L); // Set the constant term as zero
-        b_copy.addConstant(r);
+        r = generate_random(context);
+        NTL::SetCoeff(r, 0, args.one_half); // Set the constant term 1/2
+    } else {
+        NTL::SetCoeff(r, 0, args.one_half); // Set the constant term 1/2
     }
+    b_copy.addConstant(r);
     return b_copy;
 }
+
+static NTL::ZZX prepare_Xb(long b,
+                           GreaterThanArgs const& args,
+                           FHEcontext const& context) {
+    auto T(args.test_v);
+    long m = context.zMStar.getPhiM();
+    /// only works for X^N + 1 ring
+    assert(context.zMStar.getM() == (m << 1));
+    assert(b >= 0 && b < m);
+    T *= (args.ngt() - args.one_half);
+    if (b == 0)
+        return T;
+    for (long i = 0; i < b; i++) {
+        auto coeff = NTL::coeff(T, m - 1 - i);
+        NTL::SetCoeff(T, m - 1 - i, -coeff);
+    }
+    return T;
+}
+
+Ctxt greater_than(Ctxt const& ctx_a, long b,
+                  GreaterThanArgs const& args,
+                  FHEcontext const& context) {
+    check_auxiliary(ctx_a.getPubKey()); //sanity check
+    NTL::ZZX Xb = prepare_Xb(b, args, context);
+
+    Ctxt result(ctx_a);
+    result.multByConstant(Xb);
+
+    NTL::ZZX r;
+    if (args.randomized) {
+        r = generate_random(context);
+        NTL::SetCoeff(r, 0, args.one_half); // Set the constant term 1/2
+    } else {
+        NTL::SetCoeff(r, 0, args.one_half); // Set the constant term 1/2
+    }
+    result.addConstant(r);
+    return result;
+}
+
 /// If greater then returns mu_0, else returns mu_1.
 Ctxt greater_than(Ctxt const& ctx_a, Ctxt const& ctx_b, FHEcontext const& context) {
     GreaterThanArgs args = create_greater_than_args(0L, 1L, context);
     return greater_than(ctx_a, ctx_b, args, context);
+}
+
+Ctxt greater_than(Ctxt const& ctx_a, long b, FHEcontext const& context) {
+    GreaterThanArgs args = create_greater_than_args(0L, 1L, context);
+    return greater_than(ctx_a, b, args, context);
 }
 
 Ctxt equality_test(Ctxt const& ctx_a, Ctxt const& ctx_b, FHEcontext const& context, bool rnd) {
@@ -111,12 +157,35 @@ GreaterThanArgs create_greater_than_args(long mu0, long mu1,
     return args;
 }
 
-Ctxt encrypt_in_degree(long value, FHEPubKey const& pk) {
-    Ctxt cipher(pk);
-    FHEcontext const& context = pk.getContext();
+void encrypt_in_degree(Ctxt &ctx, long val, FHEPubKey const& key) {
+    FHEcontext const& context = key.getContext();
     NTL::ZZX poly;
-    encodeOnDegree(&poly, value, context);
-    pk.Encrypt(cipher, poly);
+    encodeOnDegree(&poly, val, context);
+    key.Encrypt(ctx, poly);
+}
+
+void encrypt_in_degree(Ctxt &ctx, long val, FHESecKey const& key) {
+    FHEcontext const& context = key.getContext();
+    NTL::ZZX poly;
+    encodeOnDegree(&poly, val, context);
+    key.Encrypt(ctx, poly);
+}
+
+Ctxt encrypt_in_degree(long val, FHEPubKey const& key) {
+    Ctxt cipher(key);
+    FHEcontext const& context = key.getContext();
+    NTL::ZZX poly;
+    encodeOnDegree(&poly, val, context);
+    key.Encrypt(cipher, poly);
+    return cipher;
+}
+
+Ctxt encrypt_in_degree(long val, FHESecKey const& key) {
+    Ctxt cipher(key);
+    FHEcontext const& context = key.getContext();
+    NTL::ZZX poly;
+    encodeOnDegree(&poly, val, context);
+    key.Encrypt(cipher, poly);
     return cipher;
 }
 /// F(X^a) --> F(X^{-a}) then apply the keyswtiching.
