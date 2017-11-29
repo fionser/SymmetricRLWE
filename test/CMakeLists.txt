@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.2)
-
+set(GTEST_INCLUDE_DIRS /home/riku/MyLib/include)
+set(GTEST_BOTH_LIBRARIES gtest)
+message(STATUS ${GTEST_INCLUDE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(RUNTIME_LIBS
     symrlwe
-    ntl
     helib
+    ntl
     pthread
     gmp)
 
@@ -14,6 +16,8 @@ set(CPP_ITESTS
     greater_than_benchmark
     private_greater_than_test
     decision_tree_test
+    private_greater_than_benchmark
+    bench_other_gt
     )
 
 #The integration tests must be single source code, and are compiled as a standalone application
