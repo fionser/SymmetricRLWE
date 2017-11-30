@@ -18,6 +18,9 @@ set(CPP_ITESTS
     decision_tree_test
     private_greater_than_benchmark
     bench_other_gt
+    bench_GM_gt
+    equality_test
+    test_linear_map
     )
 
 #The integration tests must be single source code, and are compiled as a standalone application

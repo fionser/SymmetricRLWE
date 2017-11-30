@@ -4,13 +4,14 @@
 #include "PrivateGreaterThan/GreaterThan.hpp"
 #include "SymRLWE/PrivateKey.hpp"
 #include <SymRLWE/Timer.hpp>
+#include <set>
 class TTP {
 public:
     static std::vector<long> feature;
     static std::vector<long> DT;
     static std::vector<long> rnds;
     static std::vector<long> indices;
-
+    static std::set<long> set;
     static long evaluate() {
         long r = 0;
         for (size_t i = 0; i < indices.size(); i++) {
@@ -20,11 +21,25 @@ public:
         }
         return r;
     }
+
+    static void sum_randoms(long root, long weight, long p) {
+        if (root > 1022) {
+            if (set.find(weight) != set.end())
+                std::cerr << weight << " duplicated\n";
+            else
+                set.insert(weight);
+        } else {
+            long next = (weight + rnds.at(root)) % p;
+            sum_randoms(root * 2 + 1, next, p);
+            sum_randoms(root * 2 + 2, weight, p);
+        }
+    }
 };
 std::vector<long> TTP::feature;
 std::vector<long> TTP::DT;
 std::vector<long> TTP::rnds;
 std::vector<long> TTP::indices;
+std::set<long> TTP::set;
 
 void random(std::vector<long> &features, long p) {
     for (auto &f : features) {
@@ -64,9 +79,9 @@ Ctxt perform_DT(std::vector<long> const& tree,
         /// randomly chose one index
         long idx = NTL::RandomBnd(d);
         auto gt_args = create_greater_than_args(rnds[i], 0, context);
-        Ctxt gt = greater_than(features.at(idx), 
-                               tree.at(i), 
-                               gt_args, context);
+        Ctxt gt = greater_than(features.at(idx), tree.at(i), gt_args, context);
+        if (!gt.isCorrect())
+            std::cout << "greater than might fail" << std::endl;
         sum += gt;
         indices.at(i) = idx;
     }
@@ -95,10 +110,13 @@ std::pair<double, double> mean_std(const std::vector<double> &times, long ignore
 
 int main(int argc, char *argv[]) {
     long m = 1024 << 3;
-    long p = NTL::RandomPrime_long(15, 20);
+    long p = NTL::RandomPrime_long(14, 20);
     long r = 1;
     FHEcontext context(m, p, r);
-    buildModChain(context, 4);
+    // context.bitsPerLevel = 14 + std::ceil(std::log(m)/2 + r* std::log(p));
+    // std::cout << context.bitsPerLevel << std::endl;
+    context.bitsPerLevel += 1;
+    buildModChain(context, 3);
     std::cout << context.securityLevel() << std::endl;
     
     FHESecKey sk(context);
@@ -110,10 +128,10 @@ int main(int argc, char *argv[]) {
     std::vector<double> encryption;
     std::vector<double> evaluation;
     std::vector<double> decryption;
-    for (long M : {100, 200, 300, 400, 500, 600, 700, 800, 900}) {
-        //long M = 500; // number of internal nodes
+    // for (long M : {100, 200, 300, 400, 500, 600, 700, 800, 900}) {
+        long M = 1023; // number of internal nodes
         long d = 16;
-        for (long _i = 0; _i < 60; _i++) {
+        // for (long _i = 0; _i < 60; _i++) {
             auto start = Clock::now();
             std::vector<Ctxt> feature = receive_from_client(sk, evk, d);
             auto end = Clock::now();
@@ -129,20 +147,26 @@ int main(int argc, char *argv[]) {
 
             start = Clock::now();
             NTL::ZZX dec;
+            if (!result.isCorrect())
+                std::cout << "decryption might fail" << std::endl;
             sk.Decrypt(dec, result);
-            if (NTL::coeff(dec, 0) != (TTP::evaluate() % context.alMod.getPPowR()))
+            auto ground = TTP::evaluate() % context.alMod.getPPowR();
+            if (NTL::coeff(dec, 0) != ground) {
                 std::cerr << "seem wrong! add more levels" << std::endl;
+                std::cerr << NTL::coeff(dec, 0)  << "!=" << ground << std::endl;
+            }
             end = Clock::now();
             decryption.push_back(time_as_millsecond(end - start));
-        }
-        std::cout << M << " " << d << " ";
-        auto ms = mean_std(encryption, 10);
-        std::cout << ms.first << " \\pm " << ms.second << " ";
-        ms = mean_std(evaluation, 10);
-        std::cout << ms.first << " \\pm " << ms.second << " ";
-        ms = mean_std(decryption, 10);
-        std::cout << ms.first << " \\pm " << ms.second << "\n";
-    }
+        // }
+        // std::cout << M << " " << d << " ";
+        // auto ms = mean_std(encryption, 10);
+        // std::cout << ms.first << " \\pm " << ms.second << " ";
+        // ms = mean_std(evaluation, 10);
+        // std::cout << ms.first << " \\pm " << ms.second << " ";
+        // ms = mean_std(decryption, 10);
+        // std::cout << ms.first << " \\pm " << ms.second << "\n";
+    // }
+    TTP::sum_randoms(0, 0, context.alMod.getPPowR());
     return 0;
 }
 

@@ -24,14 +24,14 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-add_executable(main main.cpp)
-target_link_libraries(main symrlwe helib ntl pthread gmp)
+# add_executable(main main.cpp)
+# target_link_libraries(main symrlwe helib ntl pthread gmp)
 
-add_executable(example example.cpp)
-target_link_libraries(example symrlwe helib ntl pthread gmp)
+# add_executable(example example.cpp)
+# target_link_libraries(example symrlwe helib ntl pthread gmp)
 
-add_executable(test_ea TestEncryptedArra.cpp)
-target_link_libraries(test_ea helib ntl pthread gmp)
+#add_executable(test_ea TestEncryptedArra.cpp)
+#target_link_libraries(test_ea helib ntl pthread gmp)
 
 #add_executable(new_tricks new_tricks.cpp recrypt.cpp)
 #target_link_libraries(new_tricks symrlwe helib ntl pthread gmp)
